@@ -1,4 +1,4 @@
-# Dexterous Hand RL
+# Shadow Hand RL
 
 A simulated 24-DoF Shadow Hand trained with PPO on MuJoCo 3 / MJX to solve three
 manipulation tasks: grasping a cube, pick-and-place to a randomized goal, and peg-in-hole
@@ -9,8 +9,8 @@ insertion.
 ## Setup
 
 ```bash
-git clone https://github.com/AryaPeer/shadowhand-rl.git
-cd shadowhand-rl
+git clone https://github.com/AryaPeer/ShadowHand-RL.git
+cd ShadowHand-RL
 uv sync --extra mjx
 ```
 
