@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dexterous-hand"
+name = "shadow-hand"
 version = "0.1.0"
 description = "Train a 24-DOF Shadow Hand for contact-rich manipulation"
 readme = "README.md"
@@ -55,7 +55,7 @@ select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4", "RET", "PIE", "PERF", "RUF
 ignore = ["E501", "RUF059"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["dexterous_hand"]
+known-first-party = ["shadow_hand"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -87,7 +87,7 @@ markers = [
 ]
 
 [tool.vulture]
-paths = ["dexterous_hand", "scripts", "main.py"]
+paths = ["shadow_hand", "scripts", "main.py"]
 min_confidence = 60
 ignore_names = [
     "set_curriculum_params",

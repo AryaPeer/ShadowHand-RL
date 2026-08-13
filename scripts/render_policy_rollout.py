@@ -54,21 +54,21 @@ def _render_task(
     env_cls: Any
     build_fn: Any
     if task == "grasp":
-        from dexterous_hand.config import MjxGraspTrainConfig
-        from dexterous_hand.envs.grasp_env import ShadowHandGraspMjxEnv
-        from dexterous_hand.envs.scene_builder import build_scene
+        from shadow_hand.config import MjxGraspTrainConfig
+        from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
+        from shadow_hand.envs.scene_builder import build_scene
 
         config_cls, env_cls, build_fn = MjxGraspTrainConfig, ShadowHandGraspMjxEnv, build_scene
     elif task == "peg":
-        from dexterous_hand.config import MjxPegTrainConfig
-        from dexterous_hand.envs.peg_env import ShadowHandPegMjxEnv
-        from dexterous_hand.envs.peg_scene_builder import build_peg_scene
+        from shadow_hand.config import MjxPegTrainConfig
+        from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
+        from shadow_hand.envs.peg_scene_builder import build_peg_scene
 
         config_cls, env_cls, build_fn = MjxPegTrainConfig, ShadowHandPegMjxEnv, build_peg_scene
     else:
-        from dexterous_hand.config import MjxPickPlaceTrainConfig
-        from dexterous_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
-        from dexterous_hand.envs.pickplace_scene_builder import build_pickplace_scene
+        from shadow_hand.config import MjxPickPlaceTrainConfig
+        from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
+        from shadow_hand.envs.pickplace_scene_builder import build_pickplace_scene
 
         config_cls, env_cls, build_fn = (
             MjxPickPlaceTrainConfig,

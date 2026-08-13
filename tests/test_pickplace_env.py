@@ -4,7 +4,7 @@ import pytest
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("jax")
 
-from dexterous_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
+from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
 
 
 @pytest.mark.slow

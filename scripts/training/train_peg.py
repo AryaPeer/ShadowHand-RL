@@ -1,8 +1,8 @@
 import argparse
 
-from dexterous_hand.config import MjxPegTrainConfig
-from dexterous_hand.curriculum.callbacks import AdaptiveCurriculumCallback
-from dexterous_hand.envs.peg_env import ShadowHandPegMjxEnv
+from shadow_hand.config import MjxPegTrainConfig
+from shadow_hand.curriculum.callbacks import AdaptiveCurriculumCallback
+from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
 from scripts.training._common import run_training
 
 _NAN = float("nan")

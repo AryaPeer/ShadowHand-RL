@@ -6,12 +6,12 @@ import pytest
 jax = pytest.importorskip("jax")
 jnp = pytest.importorskip("jax.numpy")
 
-from dexterous_hand.config import PegRewardConfig, RewardConfig  # noqa: E402
-from dexterous_hand.rewards.grasp_reward import (  # noqa: E402
+from shadow_hand.config import PegRewardConfig, RewardConfig  # noqa: E402
+from shadow_hand.rewards.grasp_reward import (  # noqa: E402
     grasp_reward,
     init_grasp_reward_state,
 )
-from dexterous_hand.rewards.peg_reward import (  # noqa: E402
+from shadow_hand.rewards.peg_reward import (  # noqa: E402
     init_peg_reward_state,
     peg_reward,
 )

@@ -5,7 +5,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from dexterous_hand.config import PegSceneConfig, PickPlaceSceneConfig, SceneConfig
+from shadow_hand.config import PegSceneConfig, PickPlaceSceneConfig, SceneConfig
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "shadow_hand"
 
@@ -335,7 +335,7 @@ class HandNames:
 
 
 def resolve_hand_names(model: mujoco.MjModel, *, exclude_joint: str) -> HandNames:
-    from dexterous_hand.utils.mujoco_helpers import get_joint_qpos_qvel_range
+    from shadow_hand.utils.mujoco_helpers import get_joint_qpos_qvel_range
 
     hand_joint_ids = []
     for jid in range(model.njnt):

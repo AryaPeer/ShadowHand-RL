@@ -1,19 +1,19 @@
 import jax.numpy as jnp
 
-from dexterous_hand.config import (
+from shadow_hand.config import (
     PegRewardConfig,
     PegSceneConfig,
     PickPlaceRewardConfig,
     PickPlaceSceneConfig,
     RewardConfig,
 )
-from dexterous_hand.rewards.grasp_reward import grasp_reward, init_grasp_reward_state
-from dexterous_hand.rewards.peg_reward import (
+from shadow_hand.rewards.grasp_reward import grasp_reward, init_grasp_reward_state
+from shadow_hand.rewards.peg_reward import (
     PegRewardState,
     init_peg_reward_state,
     peg_reward,
 )
-from dexterous_hand.rewards.pickplace_reward import init_pickplace_reward_state, pickplace_reward
+from shadow_hand.rewards.pickplace_reward import init_pickplace_reward_state, pickplace_reward
 
 
 def check_peg() -> bool:

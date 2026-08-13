@@ -397,7 +397,7 @@ wheels = [
 ]
 
 [[package]]
-name = "dexterous-hand"
+name = "shadow-hand"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

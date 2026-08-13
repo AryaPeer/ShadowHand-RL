@@ -1,4 +1,4 @@
-from dexterous_hand.config import (
+from shadow_hand.config import (
     AdaptiveCurriculumConfig,
     MjxGraspTrainConfig,
     MjxPegTrainConfig,

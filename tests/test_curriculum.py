@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dexterous_hand.config import AdaptiveCurriculumConfig
-from dexterous_hand.curriculum.callbacks import (
+from shadow_hand.config import AdaptiveCurriculumConfig
+from shadow_hand.curriculum.callbacks import (
     AdaptiveCurriculumCallback,
 )
 

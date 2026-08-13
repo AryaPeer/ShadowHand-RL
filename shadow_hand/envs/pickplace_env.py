@@ -7,22 +7,22 @@ import jax.numpy as jnp
 import mujoco
 import mujoco.mjx as mjx
 
-from dexterous_hand.config import (
+from shadow_hand.config import (
     DomainRandomization,
     MjxPickPlaceTrainConfig,
     PickPlaceRewardConfig,
     PickPlaceSceneConfig,
 )
-from dexterous_hand.envs._scene_common import apply_flexion_bias
-from dexterous_hand.envs.mjx_vec_env import MjxVecEnv
-from dexterous_hand.envs.pickplace_scene_builder import build_pickplace_scene
-from dexterous_hand.envs.scene_builder import SLIDE_Z_INIT
-from dexterous_hand.rewards.pickplace_reward import (
+from shadow_hand.envs._scene_common import apply_flexion_bias
+from shadow_hand.envs.mjx_vec_env import MjxVecEnv
+from shadow_hand.envs.pickplace_scene_builder import build_pickplace_scene
+from shadow_hand.envs.scene_builder import SLIDE_Z_INIT
+from shadow_hand.rewards.pickplace_reward import (
     PickPlaceRewardState,
     init_pickplace_reward_state,
     pickplace_reward,
 )
-from dexterous_hand.utils.mjx_helpers import (
+from shadow_hand.utils.mjx_helpers import (
     get_contact_arrays,
     get_finger_object_contact_mask,
     get_fingertip_positions_jax,

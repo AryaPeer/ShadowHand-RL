@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 
 import mujoco
 
-from dexterous_hand.config import PegSceneConfig
-from dexterous_hand.envs._scene_common import (
+from shadow_hand.config import PegSceneConfig
+from shadow_hand.envs._scene_common import (
     SensorMap,
     add_fingertip_sites_and_sensors,
     add_hand_slider,

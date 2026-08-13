@@ -1,7 +1,7 @@
 import argparse
 
-from dexterous_hand.config import MjxPickPlaceTrainConfig
-from dexterous_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
+from shadow_hand.config import MjxPickPlaceTrainConfig
+from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
 from scripts.training._common import run_training
 
 PICKPLACE_GATES = [

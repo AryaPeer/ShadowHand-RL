@@ -6,10 +6,10 @@ import time
 import mujoco
 import numpy as np
 
-from dexterous_hand.config import PegSceneConfig, PickPlaceSceneConfig, SceneConfig
-from dexterous_hand.envs.peg_scene_builder import build_peg_scene
-from dexterous_hand.envs.pickplace_scene_builder import build_pickplace_scene
-from dexterous_hand.envs.scene_builder import (
+from shadow_hand.config import PegSceneConfig, PickPlaceSceneConfig, SceneConfig
+from shadow_hand.envs.peg_scene_builder import build_peg_scene
+from shadow_hand.envs.pickplace_scene_builder import build_pickplace_scene
+from shadow_hand.envs.scene_builder import (
     build_scene,
 )
 
@@ -278,7 +278,7 @@ def run_pickplace(engine_cls) -> dict[str, float]:
 def run_peg(engine_cls) -> dict[str, float]:
     import jax.numpy as jnp
 
-    from dexterous_hand.utils.mjx_helpers import get_insertion_depth_jax
+    from shadow_hand.utils.mjx_helpers import get_insertion_depth_jax
 
     cfg = PegSceneConfig()
     model, data, nm = build_peg_scene(cfg)

@@ -35,18 +35,18 @@ def main() -> None:
     config_cls: Any
     env_cls: Any
     if args.task == "grasp":
-        from dexterous_hand.config import MjxGraspTrainConfig
-        from dexterous_hand.envs.grasp_env import ShadowHandGraspMjxEnv
+        from shadow_hand.config import MjxGraspTrainConfig
+        from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
 
         config_cls, env_cls = MjxGraspTrainConfig, ShadowHandGraspMjxEnv
     elif args.task == "peg":
-        from dexterous_hand.config import MjxPegTrainConfig
-        from dexterous_hand.envs.peg_env import ShadowHandPegMjxEnv
+        from shadow_hand.config import MjxPegTrainConfig
+        from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
 
         config_cls, env_cls = MjxPegTrainConfig, ShadowHandPegMjxEnv
     else:
-        from dexterous_hand.config import MjxPickPlaceTrainConfig
-        from dexterous_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
+        from shadow_hand.config import MjxPickPlaceTrainConfig
+        from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
 
         config_cls, env_cls = MjxPickPlaceTrainConfig, ShadowHandPickPlaceMjxEnv
 

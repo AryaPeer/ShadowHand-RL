@@ -4,7 +4,7 @@ from collections import deque
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 
-from dexterous_hand.config import AdaptiveCurriculumConfig
+from shadow_hand.config import AdaptiveCurriculumConfig
 
 
 class AdaptiveCurriculumCallback(BaseCallback):

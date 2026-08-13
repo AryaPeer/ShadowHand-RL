@@ -1,7 +1,7 @@
 import argparse
 
-from dexterous_hand.config import MjxGraspTrainConfig
-from dexterous_hand.envs.grasp_env import ShadowHandGraspMjxEnv
+from shadow_hand.config import MjxGraspTrainConfig
+from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
 from scripts.training._common import run_training
 
 GRASP_GATES = [

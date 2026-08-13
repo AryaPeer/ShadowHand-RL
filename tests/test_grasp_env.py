@@ -4,7 +4,7 @@ import pytest
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("jax")
 
-from dexterous_hand.envs.grasp_env import ShadowHandGraspMjxEnv
+from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
 
 
 @pytest.mark.slow

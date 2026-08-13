@@ -7,14 +7,14 @@ import jax.numpy as jnp
 import mujoco
 import mujoco.mjx as mjx
 
-from dexterous_hand.config import (
+from shadow_hand.config import (
     DomainRandomization,
     MjxGraspTrainConfig,
     RewardConfig,
     SceneConfig,
 )
-from dexterous_hand.envs.mjx_vec_env import MjxVecEnv
-from dexterous_hand.envs.scene_builder import (
+from shadow_hand.envs.mjx_vec_env import MjxVecEnv
+from shadow_hand.envs.scene_builder import (
     CUBE_GRIP_BIAS,
     CUBE_GRIP_SPAWN_XY,
     SLIDE_Z_INIT,
@@ -22,12 +22,12 @@ from dexterous_hand.envs.scene_builder import (
     build_scene,
     get_object_half_height,
 )
-from dexterous_hand.rewards.grasp_reward import (
+from shadow_hand.rewards.grasp_reward import (
     GraspRewardState,
     grasp_reward,
     init_grasp_reward_state,
 )
-from dexterous_hand.utils.mjx_helpers import (
+from shadow_hand.utils.mjx_helpers import (
     get_contact_arrays,
     get_finger_object_contact_mask,
     get_fingertip_positions_jax,

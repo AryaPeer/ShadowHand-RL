@@ -2,39 +2,21 @@ from dataclasses import dataclass, field
 
 import mujoco
 
-from dexterous_hand.config import SceneConfig
-from dexterous_hand.envs._scene_common import (  # noqa: F401  (re-exported API)
-    ASSETS_DIR,
-    CUBE_GRIP_BIAS,
-    CUBE_GRIP_SPAWN_XY,
-    FINGER_BODY_PREFIXES,
-    FINGER_TOUCH_SITE_NAMES,
-    FINGERTIP_BODIES,
-    FINGERTIP_OFFSETS,
-    FINGERTIP_SITE_NAMES,
-    GRIP_BIAS,
-    TABLE_TASK_FLEXION_BIAS,
+from shadow_hand.config import PickPlaceSceneConfig
+from shadow_hand.envs._scene_common import (
     SensorMap,
     add_fingertip_sites_and_sensors,
     add_hand_slider,
     add_workspace,
-    apply_flexion_bias,
     attach_hand,
-    build_grip_ctrl,
     init_spec_options,
     resolve_hand_names,
 )
-
-OBJECT_TYPES: dict[str, tuple[int, list[float]]] = {
-    "large_cube": (mujoco.mjtGeom.mjGEOM_BOX, [0.035, 0.035, 0.035]),
-}
-
-SLIDE_Z_RANGE: tuple[float, float] = (-0.05, 0.20)
-SLIDE_Z_INIT: float = (SLIDE_Z_RANGE[0] + SLIDE_Z_RANGE[1]) / 2.0
+from shadow_hand.envs.scene_builder import SLIDE_Z_RANGE
 
 
 @dataclass
-class NameMap:
+class PickPlaceNameMap:
     hand_joint_ids: list[int]
     hand_qpos_start: int
     hand_qpos_end: int
@@ -48,15 +30,17 @@ class NameMap:
     object_geom_id: int
     obj_qpos_start: int
     obj_qvel_start: int
+    goal_body_id: int
+    goal_mocap_id: int
     sensor_map: SensorMap = field(default_factory=SensorMap.empty)
 
 
-def build_scene(
-    config: SceneConfig | None = None,
-) -> tuple[mujoco.MjModel, mujoco.MjData, NameMap]:
+def build_pickplace_scene(
+    config: PickPlaceSceneConfig | None = None,
+) -> tuple[mujoco.MjModel, mujoco.MjData, PickPlaceNameMap]:
 
     if config is None:
-        config = SceneConfig()
+        config = PickPlaceSceneConfig()
 
     spec = mujoco.MjSpec()
     init_spec_options(spec, config)
@@ -65,23 +49,34 @@ def build_scene(
     attach_hand(spec, mount_site)
     add_fingertip_sites_and_sensors(spec)
 
-    default_type, _ = OBJECT_TYPES["large_cube"]
-    default_size = [config.object_half_extent] * 3
+    half = config.object_half_extent
     obj_body = spec.worldbody.add_body(
         name="object",
-        pos=[0.0, 0.0, config.table_height + default_size[2]],
+        pos=[0.0, 0.0, config.table_height + half],
     )
     obj_body.add_freejoint(name="object_freejoint")
     obj_body.add_geom(
         name="object_geom",
-        type=default_type,
-        size=default_size,
+        type=mujoco.mjtGeom.mjGEOM_BOX,
+        size=[half, half, half],
         mass=config.object_mass,
         friction=list(config.object_friction),
         rgba=[0.2, 0.6, 0.9, 1.0],
         contype=1,
         conaffinity=1,
         condim=4,
+    )
+
+    gx, gy = config.goal_nominal_xy
+    goal_body = spec.worldbody.add_body(name="goal", pos=[gx, gy, config.table_height + 0.001])
+    goal_body.mocap = True
+    goal_body.add_geom(
+        name="goal_marker",
+        type=mujoco.mjtGeom.mjGEOM_CYLINDER,
+        size=[config.goal_marker_radius, 0.001, 0.0],
+        rgba=[0.2, 0.9, 0.3, 0.5],
+        contype=0,
+        conaffinity=0,
     )
 
     model = spec.compile()
@@ -91,7 +86,7 @@ def build_scene(
     return model, data, name_map
 
 
-def _resolve_names(model: mujoco.MjModel) -> NameMap:
+def _resolve_names(model: mujoco.MjModel) -> PickPlaceNameMap:
     hand = resolve_hand_names(model, exclude_joint="object_freejoint")
 
     obj_jnt_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "object_freejoint")
@@ -101,7 +96,12 @@ def _resolve_names(model: mujoco.MjModel) -> NameMap:
     object_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "object")
     object_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "object_geom")
 
-    return NameMap(
+    goal_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "goal")
+    goal_mocap_id = int(model.body_mocapid[goal_body_id])
+    if goal_mocap_id < 0:
+        raise ValueError("goal body is not a mocap body")
+
+    return PickPlaceNameMap(
         hand_joint_ids=hand.hand_joint_ids,
         hand_qpos_start=hand.hand_qpos_start,
         hand_qpos_end=hand.hand_qpos_end,
@@ -114,15 +114,7 @@ def _resolve_names(model: mujoco.MjModel) -> NameMap:
         object_geom_id=object_geom_id,
         obj_qpos_start=obj_qpos_start,
         obj_qvel_start=obj_qvel_start,
+        goal_body_id=goal_body_id,
+        goal_mocap_id=goal_mocap_id,
         sensor_map=SensorMap(finger_touch_adr=hand.finger_touch_adr),
     )
-
-
-def get_object_half_height(geom_type: int, geom_size: list[float]) -> float:
-    if geom_type == mujoco.mjtGeom.mjGEOM_BOX:
-        return geom_size[2]
-    if geom_type == mujoco.mjtGeom.mjGEOM_SPHERE:
-        return geom_size[0]
-    if geom_type == mujoco.mjtGeom.mjGEOM_CYLINDER:
-        return geom_size[1]
-    return 0.03

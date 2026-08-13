@@ -1,7 +1,7 @@
 import pytest
 
-from dexterous_hand.envs.scene_builder import build_scene
-from dexterous_hand.utils.mujoco_helpers import get_joint_qpos_qvel_range
+from shadow_hand.envs.scene_builder import build_scene
+from shadow_hand.utils.mujoco_helpers import get_joint_qpos_qvel_range
 
 
 @pytest.mark.slow

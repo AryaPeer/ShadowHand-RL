@@ -234,7 +234,7 @@ def run_training(
     from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
     from wandb.integration.sb3 import WandbCallback
 
-    from dexterous_hand.policies.clamped_actor import make_clamped_actor
+    from shadow_hand.policies.clamped_actor import make_clamped_actor
 
     run_dir = Path("runs") / f"{run_prefix}_{config.num_envs}env_{config.seed}"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -253,7 +253,7 @@ def run_training(
     wandb_config = dataclasses.asdict(config)
     if extra_wandb_config:
         wandb_config.update(extra_wandb_config)
-    wandb.init(project="dexterous-hand", name=wandb_name, config=wandb_config)
+    wandb.init(project="shadow-hand", name=wandb_name, config=wandb_config)
 
     vec_env = env_cls.from_config(config)
     vec_env = VecMonitor(vec_env)

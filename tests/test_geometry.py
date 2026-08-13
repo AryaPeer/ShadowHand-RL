@@ -5,14 +5,14 @@ jnp = pytest.importorskip("jax.numpy")
 
 import numpy as np  # noqa: E402
 
-from dexterous_hand.config import (  # noqa: E402
+from shadow_hand.config import (  # noqa: E402
     PegRewardConfig,
     PegSceneConfig,
     RewardConfig,
     SceneConfig,
 )
-from dexterous_hand.envs.peg_scene_builder import build_peg_scene  # noqa: E402
-from dexterous_hand.envs.scene_builder import (  # noqa: E402
+from shadow_hand.envs.peg_scene_builder import build_peg_scene  # noqa: E402
+from shadow_hand.envs.scene_builder import (  # noqa: E402
     CUBE_GRIP_BIAS,
     CUBE_GRIP_SPAWN_XY,
     OBJECT_TYPES,
@@ -20,7 +20,7 @@ from dexterous_hand.envs.scene_builder import (  # noqa: E402
     build_scene,
     get_object_half_height,
 )
-from dexterous_hand.utils.mjx_helpers import get_insertion_depth_jax  # noqa: E402
+from shadow_hand.utils.mjx_helpers import get_insertion_depth_jax  # noqa: E402
 
 
 def _peg_length(cfg: PegSceneConfig) -> float:
@@ -76,7 +76,7 @@ def test_success_depth_fits_in_tube():
 
 
 def test_peg_is_a_mesh_cylinder_that_fits_the_round_bore():
-    from dexterous_hand.envs.peg_scene_builder import PEG_MESH_SIDES
+    from shadow_hand.envs.peg_scene_builder import PEG_MESH_SIDES
 
     cfg = PegSceneConfig()
     model, _, nm = build_peg_scene(cfg)
@@ -182,7 +182,7 @@ def test_compiled_scene_contact_options():
 def test_wall_touch_sensors_alive():
     import math
 
-    from dexterous_hand.envs.peg_scene_builder import N_BORE_WALLS
+    from shadow_hand.envs.peg_scene_builder import N_BORE_WALLS
 
     cfg = PegSceneConfig()
     model, data, nm = build_peg_scene(cfg)
@@ -257,7 +257,7 @@ def test_peg_drop_insertion_reaches_success_depth():
 def test_peg_transport_release_insertion():
     import numpy as np
 
-    from dexterous_hand.envs.scene_builder import (
+    from shadow_hand.envs.scene_builder import (
         GRIP_BIAS,
         apply_flexion_bias,
         build_grip_ctrl,
@@ -529,7 +529,7 @@ def test_grasp_lift_reaches_target_height():
 
 
 def test_contact_mask_helper_excludes_non_object_geoms():
-    from dexterous_hand.utils.mjx_helpers import (
+    from shadow_hand.utils.mjx_helpers import (
         get_finger_object_contact_mask,
         pad_id_groups,
     )
@@ -544,7 +544,7 @@ def test_contact_mask_helper_excludes_non_object_geoms():
 
 
 def test_table_press_with_distant_cube_counts_zero_grasp_contacts():
-    from dexterous_hand.utils.mjx_helpers import (
+    from shadow_hand.utils.mjx_helpers import (
         get_finger_object_contact_mask,
         pad_id_groups,
     )
@@ -579,7 +579,7 @@ def test_table_press_with_distant_cube_counts_zero_grasp_contacts():
     )
     assert table_contacts > 0, "setup failed: hand is not touching the table at all"
 
-    from dexterous_hand.utils.mjx_helpers import get_finger_touch_from_sensors
+    from shadow_hand.utils.mjx_helpers import get_finger_touch_from_sensors
 
     _, sensor_mask = get_finger_touch_from_sensors(
         jnp.asarray(data.sensordata),

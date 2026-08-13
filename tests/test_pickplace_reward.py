@@ -4,8 +4,8 @@ pytest.importorskip("jax")
 
 import jax.numpy as jnp
 
-from dexterous_hand.config import PickPlaceRewardConfig, PickPlaceSceneConfig
-from dexterous_hand.rewards.pickplace_reward import (
+from shadow_hand.config import PickPlaceRewardConfig, PickPlaceSceneConfig
+from shadow_hand.rewards.pickplace_reward import (
     init_pickplace_reward_state,
     pickplace_reward,
 )

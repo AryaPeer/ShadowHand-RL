@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 import jax.numpy as jnp
 
-from dexterous_hand.config import PegRewardConfig
+from shadow_hand.config import PegRewardConfig
 
 
 def _sigmoid(x: jnp.ndarray) -> jnp.ndarray:

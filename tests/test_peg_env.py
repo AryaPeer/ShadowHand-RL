@@ -4,8 +4,8 @@ import pytest
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("jax")
 
-from dexterous_hand.config import MjxPegTrainConfig, PegSceneConfig
-from dexterous_hand.envs.peg_env import ShadowHandPegMjxEnv
+from shadow_hand.config import MjxPegTrainConfig, PegSceneConfig
+from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
 
 
 @pytest.mark.slow
