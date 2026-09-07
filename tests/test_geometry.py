@@ -67,12 +67,7 @@ def test_success_depth_fits_in_tube():
     max_in_tube = min(entrance_z - bottom_top_z, cfg.hole_top_above_table)
 
     required = rcfg.success_threshold * _peg_length(cfg)
-    assert required < max_in_tube, (
-        f"success needs {required * 1000:.1f}mm insertion but the tube only "
-        f"admits {max_in_tube * 1000:.1f}mm (entrance z={entrance_z:.4f}, hole "
-        f"bottom top z={bottom_top_z:.4f}) — deepen hole_depth / raise "
-        f"hole_top_above_table or lower success_threshold"
-    )
+    assert required < max_in_tube
 
 
 def test_peg_is_a_mesh_cylinder_that_fits_the_round_bore():
@@ -116,24 +111,17 @@ def test_insertion_depth_requires_lateral_containment():
             (f"under-tube, {deg:.0f}deg tilt, end below bore", center.tolist(), quat_about_y)
         )
 
-    for label, pos, quat in outside_poses:
+    for _label, pos, quat in outside_poses:
         _set_peg_pose(model, data, pos, quat)
         mujoco.mj_forward(model, data)
         depth = _measure_depth(cfg, model, data, nm)
-        assert depth == 0.0, (
-            f"{label}: never-inserted peg measured depth {depth:.4f} — the "
-            f"lateral containment gate is not working"
-        )
+        assert depth == 0.0
 
     in_tube_z = float(model.body("hole").pos[2]) - cfg.hole_depth + 0.0025 + cfg.peg_half_length
     _set_peg_pose(model, data, [hx, hy, in_tube_z], upright)
     mujoco.mj_forward(model, data)
     depth = _measure_depth(cfg, model, data, nm)
-    assert depth > required, (
-        f"bottomed-out in-tube peg measured depth {depth:.4f} <= required "
-        f"{required:.4f} — either the containment gate wrongly zeroes real "
-        f"insertions or the tube is too shallow for success_threshold"
-    )
+    assert depth > required
 
 
 def test_under_tube_slot_is_blocked():
@@ -153,12 +141,8 @@ def test_under_tube_slot_is_blocked():
         body_z + float(model.geom_pos[plate_gid][2]) - float(model.geom_size[plate_gid][2])
     )
 
-    assert ped_top >= plate_bottom - 1e-9, (
-        f"pedestal top {ped_top:.4f} leaves a gap below the plate underside {plate_bottom:.4f}"
-    )
-    assert ped_bottom <= cfg.table_height + 1e-9, (
-        f"pedestal bottom {ped_bottom:.4f} floats above the table top {cfg.table_height:.4f}"
-    )
+    assert ped_top >= plate_bottom - 1e-9
+    assert ped_bottom <= cfg.table_height + 1e-9
     wall_gid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "hole_wall_px")
     wall_outer_x = float(model.geom_pos[wall_gid][0]) + float(model.geom_size[wall_gid][0])
     assert float(model.geom_size[ped_gid][0]) >= wall_outer_x - 1e-9
@@ -212,12 +196,9 @@ def test_wall_touch_sensors_alive():
         _set_peg_pose(model, data, pos, upright)
         mujoco.mj_forward(model, data)
         sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SENSOR, f"sensor_force_{wall}")
-        assert sid >= 0, f"sensor_force_{wall} missing from the compiled model"
+        assert sid >= 0
         val = float(data.sensordata[model.sensor_adr[sid]])
-        assert val > 0.0, (
-            f"peg pressed into {wall} reads {val} on its touch sensor — the "
-            f"site does not cover the contact face"
-        )
+        assert val > 0.0
 
 
 @pytest.mark.slow
@@ -235,22 +216,14 @@ def test_peg_drop_insertion_reaches_success_depth():
         mujoco.mj_step(model, data)
 
     frac = _measure_depth(cfg, model, data, nm) / peg_len
-    assert frac >= rcfg.success_threshold + 0.03, (
-        f"dropped-in peg settles at insertion_fraction={frac:.3f}, below "
-        f"success_threshold={rcfg.success_threshold} (+0.03 margin). The tube "
-        f"cannot physically admit the success depth; deepen hole_depth, raise "
-        f"hole_top_above_table, or lower success_threshold."
-    )
+    assert frac >= rcfg.success_threshold + 0.03
 
     fracs = []
     for _ in range(rcfg.peg_hold_steps * 5):
         mujoco.mj_step(model, data)
         fracs.append(_measure_depth(cfg, model, data, nm) / peg_len)
 
-    assert np.min(fracs) >= rcfg.success_threshold, (
-        f"settled peg does not HOLD the success depth (min fraction over "
-        f"{len(fracs)} steps = {np.min(fracs):.3f})"
-    )
+    assert np.min(fracs) >= rcfg.success_threshold
 
 
 @pytest.mark.slow
@@ -342,20 +315,13 @@ def test_peg_transport_release_insertion():
     do_steps(75, open_fingers=True)
 
     frac = _measure_depth(cfg, model, data, nm) / peg_len
-    assert frac >= rcfg.success_threshold + 0.03, (
-        f"transport+engaged-release settles at fraction {frac:.3f} < "
-        f"success_threshold+0.03 — the winning trajectory is no longer "
-        f"physically achievable (check bore friction pairs, release geometry, "
-        f"grip bias)"
-    )
+    assert frac >= rcfg.success_threshold + 0.03
     fracs = []
     for _ in range(50):
         do_steps(1, open_fingers=True)
         fracs.append(_measure_depth(cfg, model, data, nm) / peg_len)
 
-    assert np.min(fracs) >= rcfg.success_threshold, (
-        f"released peg does not HOLD success depth (min {np.min(fracs):.3f})"
-    )
+    assert np.min(fracs) >= rcfg.success_threshold
 
 
 CUBE_GRIP_SEED = {
@@ -435,10 +401,7 @@ def test_pre_grasped_spawn_starts_with_formed_grip():
         )
 
     n_at_spawn = cube_contacts()
-    assert n_at_spawn >= 2, (
-        f"pre-grasped spawn has only {n_at_spawn} cube contacts at reset — "
-        "the curriculum would hand the policy a pose in midair, not a grip"
-    )
+    assert n_at_spawn >= 2
 
     assert CUBE_GRIP_BIAS["slide_x"] == CUBE_GRIP_SEED["sx"]
     assert CUBE_GRIP_BIAS["slide_y"] == CUBE_GRIP_SEED["sy"]
@@ -517,15 +480,8 @@ def test_grasp_lift_reaches_target_height():
             )
             held += int(ncon > 0)
 
-    assert final_lift >= rcfg.lift_target + 0.05, (
-        f"gripped cube only lifted {final_lift * 1000:.1f}mm; lift_target="
-        f"{rcfg.lift_target * 1000:.0f}mm (+50mm margin) is not physically "
-        f"reachable — slide_z range/gains, cube size or friction broke"
-    )
-    assert held >= 39, (
-        f"cube did not stay held at height (contact on {held}/40 final steps) "
-        f"— the sustained hold that `holding` pays for is not achievable"
-    )
+    assert final_lift >= rcfg.lift_target + 0.05
+    assert held >= 39
 
 
 def test_contact_mask_helper_excludes_non_object_geoms():
@@ -596,8 +552,4 @@ def test_table_press_with_distant_cube_counts_zero_grasp_contacts():
         pad_id_groups(nm.finger_geom_ids_per_finger),
         jnp.asarray([nm.object_geom_id], dtype=jnp.int32),
     )
-    assert int(mask.sum()) == 0, (
-        f"{int(mask.sum())} grasp contacts counted while the cube is 30cm away and the hand "
-        f"is only touching the table ({table_contacts} table contacts) — contact detection "
-        f"is not filtered to the object geom"
-    )
+    assert int(mask.sum()) == 0

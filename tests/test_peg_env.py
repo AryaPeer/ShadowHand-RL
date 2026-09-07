@@ -117,9 +117,7 @@ class TestPegMjxSmoke:
                 env.step_async(actions)
                 _obs, rewards, _dones, _infos = env.step_wait()
                 assert np.all(np.isfinite(rewards))
-                assert np.all(rewards > -20.0), (
-                    f"spawn step reward {rewards.min()} — jam / unbounded force penalty"
-                )
+                assert np.all(rewards > -20.0)
         finally:
             env.close()
 
@@ -153,12 +151,7 @@ class TestPegMjxSmoke:
             env.reset()
             sd = np.asarray(env._mjx_data_batch.sensordata)
             force = sd[:, np.asarray(env._wall_force_adr)].sum(axis=1)
-            pz = np.asarray(env._mjx_data_batch.xpos[:, env._nm.peg_body_id, 2])
-            worst = int(np.argmax(force))
-            assert force.max() < 500.0, (
-                f"spawn drives {force.max():.0f}N into the socket walls "
-                f"(peg_z={pz[worst]:.4f}) — the carry path clips the socket"
-            )
+            assert force.max() < 500.0
         finally:
             env.close()
 
@@ -190,28 +183,11 @@ class TestPegMjxSmoke:
 
         full, full_lat = probe(0.0)
         raised, raised_lat = probe(0.9)
-        assert full.max() - full.min() > 0.5 * span, (
-            f"carry_floor=0 must span most of the bore->table range; covered "
-            f"{(full.max() - full.min()) / span:.0%} of {span * 1000:.0f}mm"
-        )
-        assert raised.max() - raised.min() < 0.25 * span, (
-            f"carry_floor=0.9 must confine spawns to the table end; band is "
-            f"{(raised.max() - raised.min()) / span:.0%} of the range"
-        )
+        assert full.max() - full.min() > 0.5 * span
+        assert raised.max() - raised.min() < 0.25 * span
         assert raised.max() < full.mean(), (
             "the raised band must sit below the middle of the full range"
         )
-        assert full_lat.min() < bore_r, (
-            f"carry_floor=0 must put SOME spawn over the bore, else the easy end of the "
-            f"SBC ladder does not exist; closest was {full_lat.min() * 1000:.1f}mm vs "
-            f"bore half-width {bore_r * 1000:.1f}mm. Height alone is not enough — the "
-            f"lateral travel is {abs(hx - cfg.pick_center[0]) * 1000:.0f}mm."
-        )
-        assert full_lat.max() > 0.08, (
-            f"carry_floor=0 must still reach the table end; furthest was "
-            f"{full_lat.max() * 1000:.1f}mm"
-        )
-        assert raised_lat.min() > bore_r, (
-            f"carry_floor=0.9 must delete every over-bore spawn; closest was "
-            f"{raised_lat.min() * 1000:.1f}mm vs bore half-width {bore_r * 1000:.1f}mm"
-        )
+        assert full_lat.min() < bore_r
+        assert full_lat.max() > 0.08
+        assert raised_lat.min() > bore_r
