@@ -9,24 +9,23 @@ import mujoco.mjx as mjx
 
 from shadow_hand.config import (
     DomainRandomization,
-    MjxGraspTrainConfig,
+    GraspTrainConfig,
     RewardConfig,
     SceneConfig,
 )
-from shadow_hand.envs.mjx_vec_env import MjxVecEnv
-from shadow_hand.envs.scene_builder import (
-    CUBE_GRIP_BIAS,
-    CUBE_GRIP_SPAWN_XY,
-    SLIDE_Z_INIT,
-    apply_flexion_bias,
-    build_scene,
-    get_object_half_height,
-)
-from shadow_hand.rewards.grasp_reward import (
+from shadow_hand.envs.vec_env import MjxVecEnv
+from shadow_hand.rewards.grasp import (
     GraspRewardState,
     grasp_reward,
     init_grasp_reward_state,
 )
+from shadow_hand.scenes.common import (
+    CUBE_GRIP_BIAS,
+    CUBE_GRIP_SPAWN_XY,
+    SLIDE_Z_INIT,
+    apply_flexion_bias,
+)
+from shadow_hand.scenes.grasp import build_grasp_scene, get_object_half_height
 from shadow_hand.utils.mjx_helpers import (
     get_contact_arrays,
     get_finger_object_contact_mask,
@@ -44,7 +43,7 @@ class GraspEnvState(NamedTuple):
     step_count: jnp.ndarray
 
 
-class ShadowHandGraspMjxEnv(MjxVecEnv):
+class GraspEnv(MjxVecEnv):
     def __init__(
         self,
         num_envs: int = 2048,
@@ -63,7 +62,7 @@ class ShadowHandGraspMjxEnv(MjxVecEnv):
 
         super().__init__(num_envs=num_envs, seed=seed, obs_noise_std=obs_noise_std, dr=dr)
 
-        _, _, self._nm = build_scene(self.scene_config)
+        _, _, self._nm = build_grasp_scene(self.scene_config)
 
         init_qpos = self._mj_data.qpos.copy()
         apply_flexion_bias(init_qpos, self._mj_model)
@@ -89,7 +88,7 @@ class ShadowHandGraspMjxEnv(MjxVecEnv):
         )
 
     def _build_model(self) -> mujoco.MjModel:
-        model, _, _ = build_scene(self.scene_config)
+        model, _, _ = build_grasp_scene(self.scene_config)
         return model
 
     def _obs_size(self) -> int:
@@ -255,7 +254,7 @@ class ShadowHandGraspMjxEnv(MjxVecEnv):
         return obs
 
     @classmethod
-    def from_config(cls, config: MjxGraspTrainConfig) -> ShadowHandGraspMjxEnv:
+    def from_config(cls, config: GraspTrainConfig) -> GraspEnv:
         return cls(
             num_envs=config.num_envs,
             seed=config.seed,

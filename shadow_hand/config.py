@@ -131,7 +131,7 @@ class PegSceneConfig:
 
 
 @dataclass
-class MjxGraspTrainConfig:
+class GraspTrainConfig:
     num_envs: int = 768
     total_timesteps: int = 70_000_000
     gate_enabled: bool = True
@@ -172,7 +172,7 @@ class MjxGraspTrainConfig:
     )
 
 
-def _mjx_peg_reward_config() -> PegRewardConfig:
+def _peg_reward_config() -> PegRewardConfig:
     return PegRewardConfig()
 
 
@@ -187,7 +187,7 @@ class AdaptiveCurriculumConfig:
 
 
 @dataclass
-class MjxPegTrainConfig:
+class PegTrainConfig:
     num_envs: int = 768
     total_timesteps: int = 50_000_000
     gate_enabled: bool = True
@@ -218,7 +218,7 @@ class MjxPegTrainConfig:
     log_std_max: float = 0.0
 
     scene_config: PegSceneConfig = field(default_factory=PegSceneConfig)
-    reward_config: PegRewardConfig = field(default_factory=_mjx_peg_reward_config)
+    reward_config: PegRewardConfig = field(default_factory=_peg_reward_config)
     dr: DomainRandomization = field(default_factory=lambda: DomainRandomization(enabled=False))
     adaptive_curriculum: AdaptiveCurriculumConfig = field(default_factory=AdaptiveCurriculumConfig)
 
@@ -291,7 +291,7 @@ class PickPlaceRewardConfig:
 
 
 @dataclass
-class MjxPickPlaceTrainConfig:
+class PickPlaceTrainConfig:
     num_envs: int = 768
     total_timesteps: int = 70_000_000
     gate_enabled: bool = True
