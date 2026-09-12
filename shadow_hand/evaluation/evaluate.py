@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
 from pathlib import Path
@@ -5,12 +7,14 @@ from typing import Any
 
 import numpy as np
 
+from shadow_hand.tasks import TASK_NAMES
 
-def main() -> None:
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Deterministic-policy evaluation of a saved checkpoint."
     )
-    parser.add_argument("--task", choices=("grasp", "peg", "pickplace"), required=True)
+    parser.add_argument("task", choices=TASK_NAMES)
     parser.add_argument("--model-path", type=str, required=True)
     parser.add_argument("--vec-normalize-path", type=str, required=True)
     parser.add_argument("-n", "--episodes", type=int, default=64)
@@ -20,49 +24,35 @@ def main() -> None:
         "--p-pre-grasped",
         type=float,
         default=0.0,
-        help="Fraction of eval episodes spawned already gripping the object. Default 0.0 "
-        "measures the real task; pass the training stage value to reproduce a train-time number.",
+        help="Fraction of eval episodes spawned already gripping the object.",
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = build_parser()
+    args = parser.parse_args(argv)
     if not 0.0 <= args.p_pre_grasped <= 1.0:
         parser.error("--p-pre-grasped must be in [0, 1]")
 
     from sbx import PPO
     from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
 
-    from scripts.training._common import load_saved_config
+    from shadow_hand.evaluation._curriculum import apply_eval_curriculum
+    from shadow_hand.tasks import load_task
+    from shadow_hand.training.config_io import load_saved_config
 
-    config_cls: Any
-    env_cls: Any
-    if args.task == "grasp":
-        from shadow_hand.config import MjxGraspTrainConfig
-        from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
-
-        config_cls, env_cls = MjxGraspTrainConfig, ShadowHandGraspMjxEnv
-    elif args.task == "peg":
-        from shadow_hand.config import MjxPegTrainConfig
-        from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
-
-        config_cls, env_cls = MjxPegTrainConfig, ShadowHandPegMjxEnv
-    else:
-        from shadow_hand.config import MjxPickPlaceTrainConfig
-        from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
-
-        config_cls, env_cls = MjxPickPlaceTrainConfig, ShadowHandPickPlaceMjxEnv
+    spec = load_task(args.task)
 
     model_path = Path(args.model_path).expanduser().resolve()
-    config = config_cls()
+    config = spec.config_cls()
     load_saved_config(config, model_path)
     config.num_envs = args.num_envs
     config.seed = args.seed
     config.obs_noise_std = 0.0
 
-    env: Any = env_cls.from_config(config)
-
-    if args.task == "peg":
-        env.set_curriculum_params(clearance=config.adaptive_curriculum.clearance)
-    elif args.task == "grasp" and config.curriculum_stages:
-        env.set_curriculum_params(p_pre_grasped=args.p_pre_grasped)
+    env: Any = spec.env_cls.from_config(config)
+    apply_eval_curriculum(env, args.task, config, p_pre_grasped=args.p_pre_grasped)
 
     print(f"[eval] p_pre_grasped={args.p_pre_grasped:.2f}")
 
@@ -102,7 +92,3 @@ def main() -> None:
     print(f"  success rate       : {successes / completed:.3f}  (is_success at episode end)")
     for k in sorted(metric_sums):
         print(f"  {k:36s} = {metric_sums[k] / metric_counts[k]:.4f}  (per-step mean)")
-
-
-if __name__ == "__main__":
-    main()
