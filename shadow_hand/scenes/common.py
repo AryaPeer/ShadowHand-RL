@@ -1,13 +1,15 @@
 import math
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import mujoco
 import numpy as np
 
 from shadow_hand.config import PegSceneConfig, PickPlaceSceneConfig, SceneConfig
+from shadow_hand.paths import ASSETS_DIR
+from shadow_hand.utils.mujoco_helpers import get_joint_qpos_qvel_range
 
-ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "shadow_hand"
+SLIDE_Z_RANGE: tuple[float, float] = (-0.05, 0.20)
+SLIDE_Z_INIT: float = (SLIDE_Z_RANGE[0] + SLIDE_Z_RANGE[1]) / 2.0
 
 FINGERTIP_BODIES = [
     "rh_ffdistal",
@@ -335,8 +337,6 @@ class HandNames:
 
 
 def resolve_hand_names(model: mujoco.MjModel, *, exclude_joint: str) -> HandNames:
-    from shadow_hand.utils.mujoco_helpers import get_joint_qpos_qvel_range
-
     hand_joint_ids = []
     for jid in range(model.njnt):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, jid)

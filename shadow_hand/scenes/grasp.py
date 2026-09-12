@@ -3,24 +3,13 @@ from dataclasses import dataclass, field
 import mujoco
 
 from shadow_hand.config import SceneConfig
-from shadow_hand.envs._scene_common import (  # noqa: F401  (re-exported API)
-    ASSETS_DIR,
-    CUBE_GRIP_BIAS,
-    CUBE_GRIP_SPAWN_XY,
-    FINGER_BODY_PREFIXES,
-    FINGER_TOUCH_SITE_NAMES,
-    FINGERTIP_BODIES,
-    FINGERTIP_OFFSETS,
-    FINGERTIP_SITE_NAMES,
-    GRIP_BIAS,
-    TABLE_TASK_FLEXION_BIAS,
+from shadow_hand.scenes.common import (
+    SLIDE_Z_RANGE,
     SensorMap,
     add_fingertip_sites_and_sensors,
     add_hand_slider,
     add_workspace,
-    apply_flexion_bias,
     attach_hand,
-    build_grip_ctrl,
     init_spec_options,
     resolve_hand_names,
 )
@@ -29,12 +18,9 @@ OBJECT_TYPES: dict[str, tuple[int, list[float]]] = {
     "large_cube": (mujoco.mjtGeom.mjGEOM_BOX, [0.035, 0.035, 0.035]),
 }
 
-SLIDE_Z_RANGE: tuple[float, float] = (-0.05, 0.20)
-SLIDE_Z_INIT: float = (SLIDE_Z_RANGE[0] + SLIDE_Z_RANGE[1]) / 2.0
-
 
 @dataclass
-class NameMap:
+class GraspNameMap:
     hand_joint_ids: list[int]
     hand_qpos_start: int
     hand_qpos_end: int
@@ -51,9 +37,9 @@ class NameMap:
     sensor_map: SensorMap = field(default_factory=SensorMap.empty)
 
 
-def build_scene(
+def build_grasp_scene(
     config: SceneConfig | None = None,
-) -> tuple[mujoco.MjModel, mujoco.MjData, NameMap]:
+) -> tuple[mujoco.MjModel, mujoco.MjData, GraspNameMap]:
 
     if config is None:
         config = SceneConfig()
@@ -91,7 +77,7 @@ def build_scene(
     return model, data, name_map
 
 
-def _resolve_names(model: mujoco.MjModel) -> NameMap:
+def _resolve_names(model: mujoco.MjModel) -> GraspNameMap:
     hand = resolve_hand_names(model, exclude_joint="object_freejoint")
 
     obj_jnt_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "object_freejoint")
@@ -101,7 +87,7 @@ def _resolve_names(model: mujoco.MjModel) -> NameMap:
     object_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "object")
     object_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "object_geom")
 
-    return NameMap(
+    return GraspNameMap(
         hand_joint_ids=hand.hand_joint_ids,
         hand_qpos_start=hand.hand_qpos_start,
         hand_qpos_end=hand.hand_qpos_end,

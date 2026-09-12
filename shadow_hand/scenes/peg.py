@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import mujoco
 
 from shadow_hand.config import PegSceneConfig
-from shadow_hand.envs._scene_common import (
+from shadow_hand.scenes.common import (
     SensorMap,
     add_fingertip_sites_and_sensors,
     add_hand_slider,
@@ -225,12 +225,12 @@ def build_peg_scene(
 
     model = spec.compile()
     data = mujoco.MjData(model)
-    name_map = _resolve_peg_names(model)
+    name_map = _resolve_names(model)
 
     return model, data, name_map
 
 
-def _resolve_peg_names(model: mujoco.MjModel) -> PegNameMap:
+def _resolve_names(model: mujoco.MjModel) -> PegNameMap:
     hand = resolve_hand_names(model, exclude_joint="peg_freejoint")
 
     peg_jnt_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "peg_freejoint")

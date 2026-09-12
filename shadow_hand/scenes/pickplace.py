@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 import mujoco
 
 from shadow_hand.config import PickPlaceSceneConfig
-from shadow_hand.envs._scene_common import (
+from shadow_hand.scenes.common import (
+    SLIDE_Z_RANGE,
     SensorMap,
     add_fingertip_sites_and_sensors,
     add_hand_slider,
@@ -12,7 +13,6 @@ from shadow_hand.envs._scene_common import (
     init_spec_options,
     resolve_hand_names,
 )
-from shadow_hand.envs.scene_builder import SLIDE_Z_RANGE
 
 
 @dataclass
