@@ -21,9 +21,9 @@ uv run python -c "import jax; print(jax.devices())"
 ## Train
 
 ```bash
-uv run python main.py train-grasp-mjx     --num-envs 768 --total-timesteps 70000000
-uv run python main.py train-peg-mjx       --num-envs 768 --total-timesteps 50000000
-uv run python main.py train-pickplace-mjx --num-envs 768 --total-timesteps 70000000
+uv run shadow-hand train grasp     --num-envs 768 --total-timesteps 70000000
+uv run shadow-hand train peg       --num-envs 768 --total-timesteps 50000000
+uv run shadow-hand train pickplace --num-envs 768 --total-timesteps 70000000
 ```
 
 Runs stop themselves at 10M/30M/40M if metrics stall. Pass `--no-gate` to disable.
@@ -32,7 +32,7 @@ Output goes to `runs/<name>/`, with checkpoints every 500k steps.
 ## Resume
 
 ```bash
-uv run python main.py resume-peg-mjx \
+uv run shadow-hand resume peg \
     --model-path runs/<name>/final_model.zip \
     --vec-normalize-path runs/<name>/vec_normalize.pkl \
     --additional-timesteps 50000000 --num-envs 768
@@ -41,7 +41,7 @@ uv run python main.py resume-peg-mjx \
 ## Render
 
 ```bash
-uv run python scripts/render_policy_rollout.py --task peg \
+uv run shadow-hand render peg \
     --peg-model runs/<name>/final_model.zip \
     --peg-vec-normalize runs/<name>/vec_normalize.pkl \
     --out-dir demos --tail-steps 15
@@ -50,7 +50,7 @@ uv run python scripts/render_policy_rollout.py --task peg \
 ## Evaluate
 
 ```bash
-uv run python scripts/eval_policy.py --task peg \
+uv run shadow-hand eval peg \
     --model-path runs/<name>/final_model.zip \
     --vec-normalize-path runs/<name>/vec_normalize.pkl --episodes 64
 ```
