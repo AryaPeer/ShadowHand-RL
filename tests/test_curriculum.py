@@ -83,12 +83,12 @@ class TestAdaptiveCurriculumCallback:
         _drive(cb, 0.0, 30)
         assert cb._carry_floor == pytest.approx(0.2)
 
-    def test_only_carry_floor_is_sent_gripped_only(self) -> None:
+    def test_only_carry_floor_is_sent(self) -> None:
         cb, mock_env = _make_adaptive(start_idx=0)
         cb._apply(0.5)
         sent = mock_env.env_method.call_args_list[-1]
         assert sent.args == ("set_curriculum_params", 0.010, 0.5), (
-            "gripped-only: set_curriculum_params takes (clearance, carry_floor), no p_from_table"
+            "set_curriculum_params receives (clearance, carry_floor)"
         )
 
     def test_training_start_applies_bottom_level(self) -> None:

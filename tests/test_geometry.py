@@ -1,26 +1,30 @@
 import pytest
 
-mujoco = pytest.importorskip("mujoco")
-jnp = pytest.importorskip("jax.numpy")
+pytest.importorskip("mujoco")
+pytest.importorskip("jax.numpy")
 
-import numpy as np  # noqa: E402
+import jax.numpy as jnp
+import mujoco
+import numpy as np
 
-from shadow_hand.config import (  # noqa: E402
+from shadow_hand.config import (
     PegRewardConfig,
     PegSceneConfig,
     RewardConfig,
     SceneConfig,
 )
-from shadow_hand.envs.peg_scene_builder import build_peg_scene  # noqa: E402
-from shadow_hand.envs.scene_builder import (  # noqa: E402
+from shadow_hand.scenes.common import (
     CUBE_GRIP_BIAS,
     CUBE_GRIP_SPAWN_XY,
-    OBJECT_TYPES,
     apply_flexion_bias,
-    build_scene,
+)
+from shadow_hand.scenes.grasp import (
+    OBJECT_TYPES,
+    build_grasp_scene,
     get_object_half_height,
 )
-from shadow_hand.utils.mjx_helpers import get_insertion_depth_jax  # noqa: E402
+from shadow_hand.scenes.peg import build_peg_scene
+from shadow_hand.utils.mjx_helpers import get_insertion_depth_jax
 
 
 def _peg_length(cfg: PegSceneConfig) -> float:
@@ -71,7 +75,7 @@ def test_success_depth_fits_in_tube():
 
 
 def test_peg_is_a_mesh_cylinder_that_fits_the_round_bore():
-    from shadow_hand.envs.peg_scene_builder import PEG_MESH_SIDES
+    from shadow_hand.scenes.peg import PEG_MESH_SIDES
 
     cfg = PegSceneConfig()
     model, _, nm = build_peg_scene(cfg)
@@ -151,7 +155,7 @@ def test_under_tube_slot_is_blocked():
 
 def test_compiled_scene_contact_options():
     for build, cfg in (
-        (build_scene, SceneConfig()),
+        (build_grasp_scene, SceneConfig()),
         (build_peg_scene, PegSceneConfig()),
     ):
         model = build(cfg)[0]
@@ -166,7 +170,7 @@ def test_compiled_scene_contact_options():
 def test_wall_touch_sensors_alive():
     import math
 
-    from shadow_hand.envs.peg_scene_builder import N_BORE_WALLS
+    from shadow_hand.scenes.peg import N_BORE_WALLS
 
     cfg = PegSceneConfig()
     model, data, nm = build_peg_scene(cfg)
@@ -230,11 +234,7 @@ def test_peg_drop_insertion_reaches_success_depth():
 def test_peg_transport_release_insertion():
     import numpy as np
 
-    from shadow_hand.envs.scene_builder import (
-        GRIP_BIAS,
-        apply_flexion_bias,
-        build_grip_ctrl,
-    )
+    from shadow_hand.scenes.common import GRIP_BIAS, build_grip_ctrl
 
     cfg = PegSceneConfig()
     rcfg = PegRewardConfig()
@@ -370,7 +370,7 @@ def _cube_grip_ctrl(model, p: dict, squeeze: float, z: float) -> np.ndarray:
 def test_pre_grasped_spawn_starts_with_formed_grip():
     gt, gs = OBJECT_TYPES["large_cube"]
     scfg = SceneConfig(object_half_extent=gs[0])
-    model, data, nm = build_scene(scfg)
+    model, data, nm = build_grasp_scene(scfg)
 
     qpos = data.qpos.copy()
     apply_flexion_bias(qpos, model, bias_map=CUBE_GRIP_BIAS)
@@ -417,7 +417,7 @@ def test_pre_grasped_spawn_starts_with_formed_grip():
 def test_grasp_lift_reaches_target_height():
     scfg = SceneConfig()
     rcfg = RewardConfig()
-    model, data, nm = build_scene(scfg)
+    model, data, nm = build_grasp_scene(scfg)
     p = CUBE_GRIP_SEED
 
     qpos = data.qpos.copy()
@@ -506,7 +506,7 @@ def test_table_press_with_distant_cube_counts_zero_grasp_contacts():
     )
 
     scfg = SceneConfig()
-    model, data, nm = build_scene(scfg)
+    model, data, nm = build_grasp_scene(scfg)
 
     gt, gs = OBJECT_TYPES["large_cube"]
     obj_z0 = scfg.table_height + get_object_half_height(gt, gs) + 0.001
@@ -542,8 +542,7 @@ def test_table_press_with_distant_cube_counts_zero_grasp_contacts():
         jnp.asarray(nm.sensor_map.finger_touch_adr, dtype=jnp.int32),
     )
     assert int(sensor_mask.sum()) > 0, (
-        "setup failed: the touch sensors do not fire here, so this state no longer "
-        "reproduces the Apr-20 regression and the guard below proves nothing"
+        "the touch sensors must fire in this state, or the guard below proves nothing"
     )
 
     mask = get_finger_object_contact_mask(
