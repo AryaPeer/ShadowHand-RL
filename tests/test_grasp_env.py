@@ -4,13 +4,13 @@ import pytest
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("jax")
 
-from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
+from shadow_hand.envs.grasp import GraspEnv
 
 
 @pytest.mark.slow
-class TestGraspMjxSmoke:
+class TestGraspEnv:
     def test_reset_and_step(self):
-        env = ShadowHandGraspMjxEnv(num_envs=4, seed=0, max_episode_steps=50)
+        env = GraspEnv(num_envs=4, seed=0, max_episode_steps=50)
         try:
             obs = env.reset()
             assert obs.shape == (4, 108)
@@ -30,7 +30,7 @@ class TestGraspMjxSmoke:
             env.close()
 
     def test_auto_reset_cycles_episodes(self):
-        env = ShadowHandGraspMjxEnv(num_envs=4, seed=0, max_episode_steps=3)
+        env = GraspEnv(num_envs=4, seed=0, max_episode_steps=3)
         try:
             env.reset()
             actions = np.zeros((4, env.action_space.shape[0]), dtype=np.float32)

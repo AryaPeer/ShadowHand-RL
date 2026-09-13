@@ -8,6 +8,8 @@ import imageio.v2 as imageio
 import mujoco
 import numpy as np
 
+from shadow_hand.tasks import TASK_NAMES
+
 
 def _slerp(qa: np.ndarray, qb: np.ndarray, a: float) -> np.ndarray:
     qa = qa / (np.linalg.norm(qa) + 1e-12)
@@ -18,11 +20,11 @@ def _slerp(qa: np.ndarray, qb: np.ndarray, a: float) -> np.ndarray:
 
     if dot > 0.9995:
         out = qa + a * (qb - qa)
-        return out / (np.linalg.norm(out) + 1e-12)
+        return np.asarray(out / (np.linalg.norm(out) + 1e-12))
 
     theta = np.arccos(dot)
     s = np.sin(theta)
-    return (np.sin((1.0 - a) * theta) / s) * qa + (np.sin(a * theta) / s) * qb
+    return np.asarray((np.sin((1.0 - a) * theta) / s) * qa + (np.sin(a * theta) / s) * qb)
 
 
 def _interp_qpos(qa: np.ndarray, qb: np.ndarray, a: float, free_adrs: list[int]) -> np.ndarray:
@@ -48,35 +50,13 @@ def _render_task(
     from sbx import PPO
     from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
 
-    from scripts.training._common import load_saved_config
+    from shadow_hand.evaluation._curriculum import apply_eval_curriculum
+    from shadow_hand.tasks import load_task
+    from shadow_hand.training.config_io import load_saved_config
 
-    config_cls: Any
-    env_cls: Any
-    build_fn: Any
-    if task == "grasp":
-        from shadow_hand.config import MjxGraspTrainConfig
-        from shadow_hand.envs.grasp_env import ShadowHandGraspMjxEnv
-        from shadow_hand.envs.scene_builder import build_scene
+    spec = load_task(task)
 
-        config_cls, env_cls, build_fn = MjxGraspTrainConfig, ShadowHandGraspMjxEnv, build_scene
-    elif task == "peg":
-        from shadow_hand.config import MjxPegTrainConfig
-        from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
-        from shadow_hand.envs.peg_scene_builder import build_peg_scene
-
-        config_cls, env_cls, build_fn = MjxPegTrainConfig, ShadowHandPegMjxEnv, build_peg_scene
-    else:
-        from shadow_hand.config import MjxPickPlaceTrainConfig
-        from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
-        from shadow_hand.envs.pickplace_scene_builder import build_pickplace_scene
-
-        config_cls, env_cls, build_fn = (
-            MjxPickPlaceTrainConfig,
-            ShadowHandPickPlaceMjxEnv,
-            build_pickplace_scene,
-        )
-
-    config = config_cls()
+    config = spec.config_cls()
     load_saved_config(config, model_path)
     config.num_envs = 1
     config.seed = seed
@@ -85,20 +65,16 @@ def _render_task(
     if steps is None:
         steps = config.max_episode_steps
 
-    raw_env: Any = env_cls.from_config(config)
+    raw_env: Any = spec.env_cls.from_config(config)
 
-    if task == "peg":
-        cf = (
-            config.adaptive_curriculum.carry_floor_levels[-1]
-            if peg_carry_floor is None
-            else peg_carry_floor
-        )
-        raw_env.set_curriculum_params(
-            clearance=config.adaptive_curriculum.clearance,
-            carry_floor=cf,
-        )
-    elif task == "grasp" and config.curriculum_stages:
-        raw_env.set_curriculum_params(p_pre_grasped=p_pre_grasped)
+    carry_floor = (
+        config.adaptive_curriculum.carry_floor_levels[-1]
+        if task == "peg" and peg_carry_floor is None
+        else peg_carry_floor
+    )
+    apply_eval_curriculum(
+        raw_env, task, config, p_pre_grasped=p_pre_grasped, peg_carry_floor=carry_floor
+    )
 
     env: Any = VecMonitor(raw_env)
     env = VecNormalize.load(str(vec_normalize_path), env)
@@ -107,7 +83,7 @@ def _render_task(
 
     model = PPO.load(str(model_path), env=env)
 
-    cpu_model, cpu_data, _nm = build_fn(config.scene_config)
+    cpu_model, cpu_data, _nm = spec.build_scene(config.scene_config)
     renderer = mujoco.Renderer(cpu_model, height=480, width=640)
 
     metric_sums: dict[str, float] = {}
@@ -163,11 +139,11 @@ def _render_task(
     return {k: metric_sums[k] / metric_counts[k] for k in sorted(metric_sums)}
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         description="Render a deterministic rollout of a trained checkpoint to mp4."
     )
-    ap.add_argument("--task", choices=("grasp", "peg", "pickplace", "both"), default="both")
+    ap.add_argument("task", choices=(*TASK_NAMES, "all"))
     ap.add_argument("--grasp-model", type=Path, default=None)
     ap.add_argument("--grasp-vec-normalize", type=Path, default=None)
     ap.add_argument("--peg-model", type=Path, default=None)
@@ -198,9 +174,13 @@ def main() -> None:
         default=15,
         help="frames kept after first success; lower cuts more post-success idle fidgeting",
     )
-    args = ap.parse_args()
+    return ap
 
-    tasks = ["grasp", "peg"] if args.task == "both" else [args.task]
+
+def main(argv: list[str] | None = None) -> None:
+    args = build_parser().parse_args(argv)
+
+    tasks = list(TASK_NAMES) if args.task == "all" else [args.task]
     model_by_task = {
         "grasp": (args.grasp_model, args.grasp_vec_normalize),
         "peg": (args.peg_model, args.peg_vec_normalize),
@@ -236,7 +216,3 @@ def main() -> None:
         print(f"[{task}] done. per-step metric means over the rollout:")
         for k, v in summary.items():
             print(f"    {k:36s} = {v:.4f}")
-
-
-if __name__ == "__main__":
-    main()

@@ -3,15 +3,17 @@ import math
 import numpy as np
 import pytest
 
-jax = pytest.importorskip("jax")
-jnp = pytest.importorskip("jax.numpy")
+pytest.importorskip("jax")
 
-from shadow_hand.config import PegRewardConfig, RewardConfig  # noqa: E402
-from shadow_hand.rewards.grasp_reward import (  # noqa: E402
+import jax
+import jax.numpy as jnp
+
+from shadow_hand.config import PegRewardConfig, RewardConfig
+from shadow_hand.rewards.grasp import (
     grasp_reward,
     init_grasp_reward_state,
 )
-from shadow_hand.rewards.peg_reward import (  # noqa: E402
+from shadow_hand.rewards.peg import (
     init_peg_reward_state,
     peg_reward,
 )
@@ -248,9 +250,7 @@ class TestPegJax:
         kw["finger_contact_mask"] = jnp.array([False] * 5)
         _, _, info = peg_reward(state=init_peg_reward_state(0.85), **kw)
         assert float(info["reward/place"]) < 0.02, (
-            "an ungripped peg parked outside the bore must not earn place — "
-            "a 5M sanity converged to nudging the peg against the tube and "
-            "farming ~3/step from it"
+            "an ungripped peg parked outside the bore must not earn place"
         )
 
     def test_drop_penalty_not_fired_when_inserted(self):

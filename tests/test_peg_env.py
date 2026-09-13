@@ -4,14 +4,14 @@ import pytest
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("jax")
 
-from shadow_hand.config import MjxPegTrainConfig, PegSceneConfig
-from shadow_hand.envs.peg_env import ShadowHandPegMjxEnv
+from shadow_hand.config import PegSceneConfig, PegTrainConfig
+from shadow_hand.envs.peg import PegEnv
 
 
 @pytest.mark.slow
-class TestPegMjxSmoke:
+class TestPegEnv:
     def test_reset_and_step(self):
-        env = ShadowHandPegMjxEnv(num_envs=4, seed=0, max_episode_steps=50)
+        env = PegEnv(num_envs=4, seed=0, max_episode_steps=50)
         try:
             obs = env.reset()
             assert obs.shape == (4, env._obs_size())
@@ -31,7 +31,7 @@ class TestPegMjxSmoke:
             env.close()
 
     def test_curriculum_clearance_change_rebuilds_and_steps(self):
-        env = ShadowHandPegMjxEnv(num_envs=2, seed=0, max_episode_steps=2)
+        env = PegEnv(num_envs=2, seed=0, max_episode_steps=2)
         try:
             env.reset()
             env.set_curriculum_params(clearance=0.003, carry_floor=0.5)
@@ -47,7 +47,7 @@ class TestPegMjxSmoke:
             env.close()
 
     def test_auto_reset_cycles_episodes(self):
-        env = ShadowHandPegMjxEnv(num_envs=4, seed=0, max_episode_steps=3)
+        env = PegEnv(num_envs=4, seed=0, max_episode_steps=3)
         try:
             env.reset()
             actions = np.zeros((4, env.action_space.shape[0]), dtype=np.float32)
@@ -75,7 +75,7 @@ class TestPegMjxSmoke:
             env.close()
 
     def test_pregrasped_lift_reference_clamped_to_table(self):
-        env = ShadowHandPegMjxEnv(num_envs=8, seed=0, max_episode_steps=50)
+        env = PegEnv(num_envs=8, seed=0, max_episode_steps=50)
         try:
             env.set_curriculum_params(
                 clearance=float(env.scene_config.clearance),
@@ -92,7 +92,7 @@ class TestPegMjxSmoke:
             env.close()
 
     def test_sbc_spawn_spans_bore_to_table_from_step_zero(self):
-        env = ShadowHandPegMjxEnv(num_envs=8, seed=0, max_episode_steps=50, carry_floor=0.0)
+        env = PegEnv(num_envs=8, seed=0, max_episode_steps=50, carry_floor=0.0)
         try:
             env.reset()
             cfg = env.scene_config
@@ -122,8 +122,8 @@ class TestPegMjxSmoke:
             env.close()
 
     def test_from_config_seeds_first_rollout_curriculum(self):
-        config = MjxPegTrainConfig(num_envs=2, max_episode_steps=10)
-        env = ShadowHandPegMjxEnv.from_config(config)
+        config = PegTrainConfig(num_envs=2, max_episode_steps=10)
+        env = PegEnv.from_config(config)
         try:
             ac = config.adaptive_curriculum
             assert float(env._carry_floor) == pytest.approx(ac.carry_floor_levels[0])
@@ -131,7 +131,7 @@ class TestPegMjxSmoke:
             env.close()
 
     def test_set_curriculum_params_caches_reset_per_level(self):
-        env = ShadowHandPegMjxEnv(num_envs=2, seed=0, max_episode_steps=5)
+        env = PegEnv(num_envs=2, seed=0, max_episode_steps=5)
         try:
             cl = float(env.scene_config.clearance)
             env.set_curriculum_params(clearance=cl, carry_floor=0.40)
@@ -140,13 +140,13 @@ class TestPegMjxSmoke:
             assert env._batched_reset is not r1, "a new level must build a fresh reset"
             env.set_curriculum_params(clearance=cl, carry_floor=0.40)
             assert env._batched_reset is r1 and env._fused_reset is f1, (
-                "a repeated level must reuse the cached reset (the recompile fix)"
+                "a repeated level must reuse the cached reset"
             )
         finally:
             env.close()
 
     def test_spawn_never_interpenetrates_the_socket(self):
-        env = ShadowHandPegMjxEnv(num_envs=48, seed=0, max_episode_steps=50, carry_floor=0.0)
+        env = PegEnv(num_envs=48, seed=0, max_episode_steps=50, carry_floor=0.0)
         try:
             env.reset()
             sd = np.asarray(env._mjx_data_batch.sensordata)
@@ -165,7 +165,7 @@ class TestPegMjxSmoke:
         hx, hy = cfg.hole_offset
 
         def probe(carry_floor):
-            env = ShadowHandPegMjxEnv(
+            env = PegEnv(
                 num_envs=48,
                 seed=0,
                 max_episode_steps=50,

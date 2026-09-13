@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import argparse
-import time
+from typing import Any
 
 import mujoco
 import numpy as np
+import pytest
 
 from shadow_hand.config import PegSceneConfig, PickPlaceSceneConfig, SceneConfig
-from shadow_hand.envs.peg_scene_builder import build_peg_scene
-from shadow_hand.envs.pickplace_scene_builder import build_pickplace_scene
-from shadow_hand.envs.scene_builder import (
-    build_scene,
-)
+from shadow_hand.scenes.grasp import build_grasp_scene
+from shadow_hand.scenes.peg import build_peg_scene
+from shadow_hand.scenes.pickplace import build_pickplace_scene
 
 GRASP_LIFT_BAR = 0.15
 PEG_SETTLE_BAR = 0.73
@@ -141,7 +139,7 @@ CUBE_GRIP_SEED = {
 
 def run_grasp(engine_cls) -> dict[str, float]:
     cfg = SceneConfig()
-    model, data, nm = build_scene(cfg)
+    model, data, nm = build_grasp_scene(cfg)
     eng = engine_cls(model, cfg.frame_skip)
     p = CUBE_GRIP_SEED
 
@@ -322,85 +320,34 @@ def run_peg(engine_cls) -> dict[str, float]:
     return {"settled_frac": settled, "min_hold_frac": float(np.min(fracs))}
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--backend",
-        choices=["both", "cpu", "mjx"],
-        default="both",
-        help="which engine(s) to run (default both — the parity A/B)",
-    )
-    args = ap.parse_args()
-
-    engines: list[type[CpuEngine] | type[MjxEngine]] = []
-    if args.backend in ("both", "cpu"):
-        engines.append(CpuEngine)
-
-    if args.backend in ("both", "mjx"):
-        try:
-            import mujoco.mjx  # noqa: F401
-        except ImportError:
-            print(
-                "ERROR: mujoco.mjx not importable — install the mjx extra "
-                "(uv sync --extra mjx). Refusing to 'pass' without testing MJX."
-            )
-            raise SystemExit(2) from None
-
-        engines.append(MjxEngine)
-
-    results: dict[str, dict[str, dict[str, float]]] = {}
-    for eng_cls in engines:
-        for task, fn in (("grasp", run_grasp), ("peg", run_peg), ("pickplace", run_pickplace)):
-            t0 = time.time()
-            print(f"[{eng_cls.name}] {task} trajectory ...", flush=True)
-            r = fn(eng_cls)
-            r["seconds"] = time.time() - t0
-            results.setdefault(task, {})[eng_cls.name] = r
-
-    print("\n=== parity results ===")
-    ok = True
-    for task, per_engine in results.items():
-        for name, r in per_engine.items():
-            if task == "grasp":
-                passed = r["final_lift"] >= GRASP_LIFT_BAR and r["nfc_end"] >= 2
-                print(
-                    f"  grasp     [{name}]: final_lift={r['final_lift'] * 1000:6.1f}mm "
-                    f"(bar {GRASP_LIFT_BAR * 1000:.0f}) nfc_end={int(r['nfc_end'])} "
-                    f"({r['seconds']:.0f}s)  {'PASS' if passed else 'FAIL'}"
-                )
-            elif task == "peg":
-                passed = r["settled_frac"] >= PEG_SETTLE_BAR and r["min_hold_frac"] >= PEG_HOLD_BAR
-                print(
-                    f"  peg       [{name}]: settled={r['settled_frac']:.3f} "
-                    f"(bar {PEG_SETTLE_BAR}) min_hold={r['min_hold_frac']:.3f} "
-                    f"(bar {PEG_HOLD_BAR}) ({r['seconds']:.0f}s)  "
-                    f"{'PASS' if passed else 'FAIL'}"
-                )
-            else:
-                passed = (
-                    r["place_dist"] <= PICKPLACE_PLACE_BAR and r["obj_z_err"] <= PICKPLACE_Z_BAR
-                )
-                print(
-                    f"  pickplace [{name}]: place_dist={r['place_dist'] * 1000:6.1f}mm "
-                    f"(bar {PICKPLACE_PLACE_BAR * 1000:.0f}) z_err={r['obj_z_err'] * 1000:.1f}mm "
-                    f"({r['seconds']:.0f}s)  {'PASS' if passed else 'FAIL'}"
-                )
-
-            ok &= passed
-
-    print()
-
-    if ok:
-        print(
-            "PARITY OK — MJX reproduces the CPU-proven winning trajectories."
-            if args.backend == "both"
-            else "All trajectories PASS."
-        )
-    else:
-        print("PARITY FAILURE — do NOT launch a sanity/full run until resolved.")
-
-    raise SystemExit(0 if ok else 1)
+ENGINES = [
+    CpuEngine,
+    pytest.param(MjxEngine, marks=pytest.mark.slow),
+]
 
 
-if __name__ == "__main__":
-    main()
+def _engine(engine_cls: Any) -> Any:
+    if engine_cls is MjxEngine:
+        pytest.importorskip("mujoco.mjx")
+    return engine_cls
+
+
+@pytest.mark.parametrize("engine_cls", ENGINES, ids=lambda c: c.name)
+def test_grasp_trajectory_lifts_the_cube(engine_cls: Any) -> None:
+    r = run_grasp(_engine(engine_cls))
+    assert r["final_lift"] >= GRASP_LIFT_BAR
+    assert r["nfc_end"] >= 2
+
+
+@pytest.mark.parametrize("engine_cls", ENGINES, ids=lambda c: c.name)
+def test_peg_trajectory_settles_in_the_bore(engine_cls: Any) -> None:
+    r = run_peg(_engine(engine_cls))
+    assert r["settled_frac"] >= PEG_SETTLE_BAR
+    assert r["min_hold_frac"] >= PEG_HOLD_BAR
+
+
+@pytest.mark.parametrize("engine_cls", ENGINES, ids=lambda c: c.name)
+def test_pickplace_trajectory_reaches_the_goal(engine_cls: Any) -> None:
+    r = run_pickplace(_engine(engine_cls))
+    assert r["place_dist"] <= PICKPLACE_PLACE_BAR
+    assert r["obj_z_err"] <= PICKPLACE_Z_BAR

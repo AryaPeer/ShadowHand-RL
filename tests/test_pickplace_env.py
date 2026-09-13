@@ -4,13 +4,13 @@ import pytest
 pytest.importorskip("mujoco.mjx")
 pytest.importorskip("jax")
 
-from shadow_hand.envs.pickplace_env import ShadowHandPickPlaceMjxEnv
+from shadow_hand.envs.pickplace import PickPlaceEnv
 
 
 @pytest.mark.slow
-class TestPickPlaceMjxSmoke:
+class TestPickPlaceEnv:
     def test_reset_and_step(self):
-        env = ShadowHandPickPlaceMjxEnv(num_envs=4, seed=0, max_episode_steps=50)
+        env = PickPlaceEnv(num_envs=4, seed=0, max_episode_steps=50)
         try:
             obs = env.reset()
             assert obs.shape == (4, 117)
@@ -29,7 +29,7 @@ class TestPickPlaceMjxSmoke:
             env.close()
 
     def test_goal_marker_varies_per_env(self):
-        env = ShadowHandPickPlaceMjxEnv(num_envs=8, seed=0, max_episode_steps=50)
+        env = PickPlaceEnv(num_envs=8, seed=0, max_episode_steps=50)
         try:
             env.reset()
             mocap = np.asarray(env._mjx_data_batch.mocap_pos)
@@ -39,15 +39,3 @@ class TestPickPlaceMjxSmoke:
             assert np.ptp(goals[:, 1]) > 0.0
         finally:
             env.close()
-
-    def test_winnable_cpu(self):
-        from scripts.mjx_parity_check import (
-            PICKPLACE_PLACE_BAR,
-            PICKPLACE_Z_BAR,
-            CpuEngine,
-            run_pickplace,
-        )
-
-        r = run_pickplace(CpuEngine)
-        assert r["place_dist"] <= PICKPLACE_PLACE_BAR
-        assert r["obj_z_err"] <= PICKPLACE_Z_BAR

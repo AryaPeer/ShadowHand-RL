@@ -10,25 +10,25 @@ import mujoco.mjx as mjx
 
 from shadow_hand.config import (
     DomainRandomization,
-    MjxPegTrainConfig,
     PegRewardConfig,
     PegSceneConfig,
+    PegTrainConfig,
 )
-from shadow_hand.envs.mjx_vec_env import MjxVecEnv
-from shadow_hand.envs.peg_scene_builder import (
-    PEG_SLIDE_Z_RANGE,
-    WALL_SENSOR_NAMES,
-    build_peg_scene,
+from shadow_hand.envs.vec_env import MjxVecEnv
+from shadow_hand.rewards.peg import (
+    PegRewardState,
+    init_peg_reward_state,
+    peg_reward,
 )
-from shadow_hand.envs.scene_builder import (
+from shadow_hand.scenes.common import (
     GRIP_BIAS,
     apply_flexion_bias,
     build_grip_ctrl,
 )
-from shadow_hand.rewards.peg_reward import (
-    PegRewardState,
-    init_peg_reward_state,
-    peg_reward,
+from shadow_hand.scenes.peg import (
+    PEG_SLIDE_Z_RANGE,
+    WALL_SENSOR_NAMES,
+    build_peg_scene,
 )
 from shadow_hand.utils.mjx_helpers import (
     get_body_axis_jax,
@@ -54,7 +54,7 @@ class PegEnvState(NamedTuple):
     key: jax.Array
 
 
-class ShadowHandPegMjxEnv(MjxVecEnv):
+class PegEnv(MjxVecEnv):
     def __init__(
         self,
         num_envs: int = 2048,
@@ -432,7 +432,7 @@ class ShadowHandPegMjxEnv(MjxVecEnv):
         return obs
 
     @classmethod
-    def from_config(cls, config: MjxPegTrainConfig) -> ShadowHandPegMjxEnv:
+    def from_config(cls, config: PegTrainConfig) -> PegEnv:
         return cls(
             num_envs=config.num_envs,
             seed=config.seed,

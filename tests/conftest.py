@@ -7,6 +7,7 @@ FILE_TASK = {
     "test_peg_env.py": "peg",
     "test_pickplace_env.py": "pickplace",
     "test_pickplace_reward.py": "pickplace",
+    "test_reward_exploits.py": "peg",
 }
 
 TASK_KEYWORDS = {

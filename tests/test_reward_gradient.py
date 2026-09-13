@@ -1,3 +1,7 @@
+import pytest
+
+pytest.importorskip("jax")
+
 import jax.numpy as jnp
 
 from shadow_hand.config import (
@@ -7,16 +11,16 @@ from shadow_hand.config import (
     PickPlaceSceneConfig,
     RewardConfig,
 )
-from shadow_hand.rewards.grasp_reward import grasp_reward, init_grasp_reward_state
-from shadow_hand.rewards.peg_reward import (
+from shadow_hand.rewards.grasp import grasp_reward, init_grasp_reward_state
+from shadow_hand.rewards.peg import (
     PegRewardState,
     init_peg_reward_state,
     peg_reward,
 )
-from shadow_hand.rewards.pickplace_reward import init_pickplace_reward_state, pickplace_reward
+from shadow_hand.rewards.pickplace import init_pickplace_reward_state, pickplace_reward
 
 
-def check_peg() -> bool:
+def test_peg_reward_gradient() -> None:
     cfg = PegRewardConfig()
     scene = PegSceneConfig()
     pl = scene.peg_half_length * 2.0
@@ -88,8 +92,6 @@ def check_peg() -> bool:
         _, info = _step(state, initial_z, (release_r, 0.0), False, 0.0, 1)
         return info
 
-    print("\n=== PEG reward gradient ===\n")
-
     spawn_r = scene.spawn_min_radius
     engaged_z = hole_z + cfg.release_height + pl / 2.0
     engaged_depth = max(0.0, -cfg.release_height)
@@ -129,20 +131,6 @@ def check_peg() -> bool:
     t_drop_far = float(s_drop_far["reward/total"])
     prem_drop_far = float(s_drop_far["reward/premature_release"])
 
-    print("  winning-trajectory per-step totals:")
-    print(f"    reach-only (no grip)           = {t_reach:>9.3f}")
-    print(f"    gripped on table (r={spawn_r * 100:.0f}cm)     = {t_table:>9.3f}")
-    print(f"    gripped lifted 5cm             = {t_lift:>9.3f}")
-    print(f"    gripped at engaged pose        = {t_carry:>9.3f}")
-    print(f"    RELEASED at engaged pose       = {t_release_engaged:>9.3f}")
-    print(f"    RELEASED, settled in bore      = {t_settled:>9.3f}")
-    print(f"    HELD gripped at engaged (farm) = {t_hold:>9.3f}")
-    print(f"    HELD gripped deep (frac 0.69)  = {t_farm:>9.3f}")
-    print(f"    ungripped on table @ bore xy   = {t_false_bottom:>9.3f}")
-    print(f"    parked by tube, NO grip        = {t_parked:>9.3f}")
-    print(f"    DROPPED mid-carry (r=8cm)      = {t_drop_far:>9.3f}  (prem {prem_drop_far:+.2f})")
-    print()
-
     monotone = t_table < t_lift < t_carry < t_settled
     anti_cliff = t_release_engaged >= t_carry and t_settled > t_carry
     parked_pays_nothing = t_parked < 1.0 and t_parked < t_table
@@ -161,34 +149,16 @@ def check_peg() -> bool:
     )
     no_premature_drop = prem_drop_far < 0.0 and t_drop_far < t_table
 
-    print(f"  GATE 1: monotone table<lift<carry<settled       {'PASS' if monotone else 'FAIL'}")
-    print(f"  GATE 2: release beats carry (no dip)            {'PASS' if anti_cliff else 'FAIL'}")
-    print(
-        f"  GATE 3: parked-ungripped pays ~nothing          "
-        f"{'PASS' if parked_pays_nothing else 'FAIL'}"
-    )
-    print(
-        f"  GATE 4: on-table @ bore pays ~nothing           {'PASS' if no_false_bottom else 'FAIL'}"
-    )
-    print(f"  GATE 5: engaged-release beats hover-and-hold    {'PASS' if anti_hold else 'FAIL'}")
-    print(f"  GATE 6: released-settled is the global optimum  {'PASS' if dominance else 'FAIL'}")
-    print(
-        f"  GATE 7: mid-carry drop punished < holding       "
-        f"{'PASS' if no_premature_drop else 'FAIL'}"
-    )
-
-    return (
-        monotone
-        and anti_cliff
-        and parked_pays_nothing
-        and no_false_bottom
-        and anti_hold
-        and dominance
-        and no_premature_drop
-    )
+    assert monotone, "monotone table<lift<carry<settled"
+    assert anti_cliff, "release beats carry (no dip)"
+    assert parked_pays_nothing, "parked-ungripped pays ~nothing"
+    assert no_false_bottom, "on-table @ bore pays ~nothing"
+    assert anti_hold, "engaged-release beats hover-and-hold"
+    assert dominance, "released-settled is the global optimum"
+    assert no_premature_drop, "mid-carry drop punished < holding"
 
 
-def check_grasp() -> bool:
+def test_grasp_reward_gradient() -> None:
     cfg = RewardConfig()
     table_h = 0.4
     initial_z = 0.43
@@ -216,30 +186,12 @@ def check_grasp() -> bool:
         )
         return info
 
-    print("\n=== GRASP reward gradient ===\n")
     info_sit = run(initial_z + 0.0)
     info_lift = run(initial_z + cfg.lift_target)
 
     total_sit = float(info_sit["reward/total"])
     total_lift = float(info_lift["reward/total"])
     delta_total = total_lift - total_sit
-    grasp_post_weight = float(info_sit["reward/grasping"])
-
-    print("  at lift_height = 0mm (perfect grip, no lift):")
-    print(f"    reward/total              = {total_sit:>8.4f}")
-    print(f"    reward/grasping           = {grasp_post_weight:>8.4f}  (post-weight)")
-    print(f"    reward/lifting            = {float(info_sit['reward/lifting']):>8.4f}")
-    print()
-    print(f"  at lift_height = {cfg.lift_target * 1000:.0f}mm (= lift_target):")
-    print(f"    reward/total              = {total_lift:>8.4f}")
-    print(f"    reward/lifting            = {float(info_lift['reward/lifting']):>8.4f}")
-    print()
-    print(f"  delta_total (lifting to target) = {delta_total:>+8.4f}")
-    print(
-        f"  delta_lift_component             = "
-        f"{float(info_lift['reward/lifting']) - float(info_sit['reward/lifting']):>+8.4f}"
-    )
-    print()
 
     intermediate = run(initial_z + cfg.lift_target * 0.5)
     monotonic = (
@@ -251,12 +203,11 @@ def check_grasp() -> bool:
     bar_delta = 5.0
     pass_delta = delta_total >= bar_delta
 
-    print(f"  GATE 1: delta_total >= {bar_delta}             {'PASS' if pass_delta else 'FAIL'}")
-    print(f"  GATE 2: monotonic 0 -> half -> full target  {'PASS' if monotonic else 'FAIL'}")
-    return pass_delta and monotonic
+    assert pass_delta, f"delta_total >= {bar_delta}"
+    assert monotonic, "monotonic 0 -> half -> full target"
 
 
-def check_pickplace() -> bool:
+def test_pickplace_reward_gradient() -> None:
     cfg = PickPlaceRewardConfig()
     scfg = PickPlaceSceneConfig()
     table_h = scfg.table_height
@@ -331,19 +282,6 @@ def check_pickplace() -> bool:
     t_parked = float(s_parked["reward/total"])
     placed_bulldoze = float(s_bulldoze["reward/placed"])
 
-    print("\n=== PICKPLACE reward gradient ===\n")
-    print("  winning-trajectory per-step totals:")
-    print(f"    reach-only (no grip)           = {t_reach:>9.3f}")
-    print(f"    gripped @ source               = {t_grip:>9.3f}")
-    print(f"    gripped lifted @ source        = {t_lift:>9.3f}")
-    print(f"    carried, lifted over goal      = {t_hover:>9.3f}")
-    print(f"    HELD gripped on table @ goal   = {t_hold:>9.3f}")
-    print(f"    released @ goal (no annuity)   = {t_settled_nos:>9.3f}")
-    print(f"    RELEASED, settled @ goal       = {t_settled:>9.3f}")
-    print(f"    parked, no grip                = {t_parked:>9.3f}")
-    print(f"    bulldozed @ goal (never lifted) placed = {placed_bulldoze:>7.4f}")
-    print()
-
     monotone = t_reach < t_grip < t_lift < t_hover < t_settled
     anti_cliff = t_settled > t_hover and t_settled_nos > t_hover
     parked_pays_nothing = t_parked < 1.0 and t_parked < t_grip
@@ -351,34 +289,9 @@ def check_pickplace() -> bool:
     anti_hold = t_settled_nos > t_hold
     dominance = t_settled >= max(t_reach, t_grip, t_lift, t_hover, t_hold, t_parked)
 
-    print(f"  GATE 1: monotone reach<grip<lift<carry<settled   {'PASS' if monotone else 'FAIL'}")
-    print(f"  GATE 2: settled beats carry (release, no dip)    {'PASS' if anti_cliff else 'FAIL'}")
-    print(
-        f"  GATE 3: parked-ungripped pays ~nothing           "
-        f"{'PASS' if parked_pays_nothing else 'FAIL'}"
-    )
-    print(f"  GATE 4: bulldozing (never lifted) pays nothing   {'PASS' if no_bulldoze else 'FAIL'}")
-    print(f"  GATE 5: release beats place-and-hold (no farm)   {'PASS' if anti_hold else 'FAIL'}")
-    print(f"  GATE 6: released-settled is the global optimum   {'PASS' if dominance else 'FAIL'}")
-
-    return (
-        monotone and anti_cliff and parked_pays_nothing and no_bulldoze and anti_hold and dominance
-    )
-
-
-if __name__ == "__main__":
-    peg_ok = check_peg()
-    grasp_ok = check_grasp()
-    pickplace_ok = check_pickplace()
-    print()
-    print("=" * 60)
-    print(f"PEG:       {'PASS' if peg_ok else 'FAIL'}")
-    print(f"GRASP:     {'PASS' if grasp_ok else 'FAIL'}")
-    print(f"PICKPLACE: {'PASS' if pickplace_ok else 'FAIL'}")
-    print("=" * 60)
-
-    if not (peg_ok and grasp_ok and pickplace_ok):
-        print("\nDO NOT spend on a full run — fix reward shape first.")
-        raise SystemExit(1)
-
-    print("\nReward gradient is correctly oriented. Sanity run is safe to launch.")
+    assert monotone, "monotone reach<grip<lift<carry<settled"
+    assert anti_cliff, "settled beats carry (release, no dip)"
+    assert parked_pays_nothing, "parked-ungripped pays ~nothing"
+    assert no_bulldoze, "bulldozing (never lifted) pays nothing"
+    assert anti_hold, "release beats place-and-hold (no farm)"
+    assert dominance, "released-settled is the global optimum"
